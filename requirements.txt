@@ -10,4 +10,3 @@ pydub
 websockets
 pydub
 aiohttp
-ffmpeg-static
