@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+google-cloud-speech
+google-cloud-texttospeech
+openai
+python-dotenv
+PyYAML
+google-generativeai
+pydub
+websockets
+pydub
+aiohttp
