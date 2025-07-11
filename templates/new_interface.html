@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Omani Arabic Voice Assistant</title>
+        <style>
+                :root {
+                    --primary-color: #3949ab;
+                    --secondary-color: #1e88e5;
+                    --accent-color: #ff5722;
+                    --light-bg: #f5f7fa;
+                    --dark-text: #263238;
+                    --light-text: #eceff1;
+                    --success-color: #4caf50;
+                    --error-color: #f44336;
+                    --warning-color: #ff9800;
+                    --card-shadow:
+                        0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+                    --transition-speed: 0.3s;
+                }
+
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                body {
+                    font-family:
+                        "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+                        "Helvetica Neue", sans-serif;
+                    background-color: var(--light-bg);
+                    color: var(--dark-text);
+                    line-height: 1.6;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 20px;
+                }
+
+                header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    width: 100%;
+                    max-width: 800px;
+                }
+
+                h1 {
+                    color: var(--primary-color);
+                    font-size: 2.5rem;
+                    margin-bottom: 0.5rem;
+                }
+
+                h2 {
+                    color: var(--secondary-color);
+                    font-size: 1.25rem;
+                    font-weight: 400;
+                }
+
+                .main-container {
+                    width: 100%;
+                    max-width: 800px;
+                    background-color: white;
+                    border-radius: 12px;
+                    box-shadow: var(--card-shadow);
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                }
+            }
+
+            /* Consent Modal Styles */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.6);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+
+            .modal-content {
+                background-color: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                width: 90%;
+                max-width: 500px;
+                text-align: left;
+            }
+
+            .modal-content h3 {
+                color: var(--primary-color);
+                margin-top: 0;
+                margin-bottom: 15px;
+            }
+
+            .modal-content p, .modal-content li {
+                font-size: 0.95rem;
+                line-height: 1.6;
+                color: #546e7a;
+                margin-bottom: 10px;
+            }
+
+            .modal-content ul {
+                padding-left: 20px;
+            }
+
+            .modal-content button {
+                display: block;
+                width: 100%;
+                padding: 12px;
+                background-color: var(--success-color);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1.1rem;
+                cursor: pointer;
+                transition: background-color var(--transition-speed);
+                margin-top: 20px;
+            }
+
+            .modal-content button:hover {
+                background-color: #45a049;
+            }
+
+            .content-wrapper {
+                /* This wrapper is used to apply the blur effect */
+                transition: filter 0.3s;
+            }
+
+            .content-wrapper.blurred {
+                filter: blur(5px);
+                pointer-events: none;
+            }
+
+            .status-bar {
+                display: flex;
+                justify-content: space-between;
+                    align-items: center;
+                    padding: 10px 20px;
+                    background-color: var(--primary-color);
+                    color: var(--light-text);
+                }
+
+                .connection-indicator {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 0.9rem;
+                }
+
+                .connection-dot {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    background-color: var(--error-color);
+                    transition: background-color var(--transition-speed);
+                }
+
+                .connection-dot.connected {
+                    background-color: var(--success-color);
+                }
+
+                .audio-visualizer {
+                    height: 120px;
+                    background-color: rgba(0, 0, 0, 0.05);
+                    margin: 20px;
+                    border-radius: 8px;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .visualizer-canvas {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                .controls-section {
+                    padding: 0 20px 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                .record-button {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    background-color: var(--accent-color);
+                    border: none;
+                    color: white;
+                    font-size: 1.8rem;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all var(--transition-speed);
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+                    margin-bottom: 15px;
+                }
+
+                .record-button:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                }
+
+                .record-button.recording {
+                    background-color: var(--error-color);
+                    animation: pulse 1.5s infinite;
+                }
+
+                @keyframes pulse {
+                    0% {
+                        transform: scale(1);
+                        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+                    }
+                    70% {
+                        transform: scale(1.05);
+                        box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+                    }
+                    100% {
+                        transform: scale(1);
+                        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+                    }
+                }
+
+                .status-text {
+                    font-size: 1.1rem;
+                    color: #546e7a;
+                    text-align: center;
+                    height: 1.5rem;
+                    margin-bottom: 20px;
+                }
+
+                .conversation-section {
+                    flex: 1;
+                    padding: 20px;
+                    background-color: rgba(0, 0, 0, 0.02);
+                    border-top: 1px solid rgba(0, 0, 0, 0.1);
+                }
+
+                .conversation-container {
+                    max-height: 300px;
+                    overflow-y: auto;
+                    padding: 10px;
+                    border-radius: 8px;
+                    background-color: white;
+                    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+                }
+
+                .message {
+                    margin-bottom: 15px;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    max-width: 80%;
+                    position: relative;
+                }
+
+                .user-message {
+                    background-color: #e3f2fd;
+                    color: #0d47a1;
+                    margin-left: auto;
+                    border-bottom-right-radius: 0;
+                }
+
+                .system-message {
+                    background-color: #f5f5f5;
+                    color: #37474f;
+                    margin-right: auto;
+                    border-bottom-left-radius: 0;
+                }
+
+                .audio-player {
+                    width: 100%;
+                    margin-top: 10px;
+                    border-radius: 20px;
+                    height: 40px;
+                }
+
+                .help-section {
+                    padding: 20px;
+                    border-top: 1px solid rgba(0, 0, 0, 0.1);
+                }
+
+                .help-title {
+                    font-size: 1.2rem;
+                    color: var(--primary-color);
+                    margin-bottom: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    cursor: pointer;
+                }
+
+                .help-content {
+                    padding: 0 10px;
+                    max-height: 0;
+                    overflow: hidden;
+                    transition: max-height var(--transition-speed);
+                }
+
+                .help-content.open {
+                    max-height: 500px;
+                }
+
+                .instructions {
+                    list-style-position: inside;
+                    padding: 10px 0;
+                }
+
+                .instructions li {
+                    margin-bottom: 8px;
+                }
+
+                footer {
+                    margin-top: 30px;
+                    text-align: center;
+                    font-size: 0.9rem;
+                    color: #78909c;
+                    width: 100%;
+                    max-width: 800px;
+                }
+
+                /* Responsive design */
+                @media (max-width: 600px) {
+                    body {
+                        padding: 10px;
+                    }
+
+                    h1 {
+                        font-size: 2rem;
+                    }
+
+                    .main-container {
+                        border-radius: 8px;
+                    }
+
+                    .audio-visualizer {
+                        height: 80px;
+                    }
+
+                    .message {
+                        max-width: 90%;
+                    }
+                }
+        </style>
+    </head>
+    <body>
+        <div class="modal-overlay" id="consentModal">
+            <div class="modal-content">
+                <h3>موافقة على الاستخدام والخصوصية (Consent & Privacy)</h3>
+                <p>Before you begin, please read and agree to the following:</p>
+                <ul>
+                    <li>
+                        <strong>Audio Processing:</strong> Your voice recordings
+                        will be sent to AI services (Google Speech-to-Text and
+                        OpenAI) for processing.
+                    </li>
+                    <li>
+                        <strong>Data Storage:</strong> Conversations are not
+                        permanently stored with your personal information.
+                    </li>
+                    <li>
+                        <strong>Safety:</strong> Conversations that indicate a
+                        severe risk of harm may be anonymously logged for safety
+                        and review purposes.
+                    </li>
+                    <li>
+                        <strong>Not a Replacement for Therapy:</strong> This
+                        application is a listening tool and not a substitute for
+                        professional medical or psychological advice.
+                    </li>
+                </ul>
+                <button id="consentButton">I Agree & Start Session</button>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <header>
+                <h1>Omani Arabic Voice Assistant</h1>
+                <h2>تطبيق المساعد الصوتي للهجة العمانية</h2>
+            </header>
+
+            <div class="main-container">
+                <div class="status-bar">
+                    <div class="connection-indicator">
+                        <div id="connectionDot" class="connection-dot"></div>
+                        <span id="connectionText">Disconnected</span>
+                    </div>
+                    <div id="audioStatus">Ready</div>
+                </div>
+
+                <div class="audio-visualizer">
+                    <canvas id="visualizer" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="controls-section">
+                    <button id="recordButton" class="record-button">
+                        <i id="recordIcon">🎤</i>
+                    </button>
+                    <div id="statusText" class="status-text">
+                        Click microphone to start speaking
+                    </div>
+                    <audio
+                        id="audioPlayer"
+                        class="audio-player"
+                        controls
+                    ></audio>
+                </div>
+
+                <div class="conversation-section">
+                    <div id="conversation" class="conversation-container">
+                        <div class="message system-message">
+                            مرحبا! أنا مساعدك الصوتي. انقر على زر الميكروفون
+                            وتحدث باللهجة العمانية.
+                        </div>
+                        <div class="message system-message">
+                            Hello! I'm your voice assistant. Click the
+                            microphone button and speak in Omani Arabic.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div id="helpTitle" class="help-title">
+                        <span>How to use this application</span>
+                        <span id="helpToggle">▼</span>
+                    </div>
+                    <div id="helpContent" class="help-content">
+                        <ol class="instructions">
+                            <li>
+                                Click the microphone button to start recording.
+                            </li>
+                            <li>Speak clearly in Omani Arabic dialect.</li>
+                            <li>
+                                The recording will automatically stop after a
+                                pause in speech.
+                            </li>
+                            <li>
+                                Your speech will be transcribed and displayed in
+                                the conversation.
+                            </li>
+                            <li>
+                                A synthesized voice response will play
+                                automatically.
+                            </li>
+                            <li>
+                                You can click the microphone again to continue
+                                the conversation.
+                            </li>
+                        </ol>
+                        <p>
+                            For best results, use a good quality microphone and
+                            speak in a quiet environment.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <p>
+                    Omani Arabic Speech API v4.0.0 | Powered by Google Cloud
+                    Speech & Text-to-Speech
+                </p>
+            </footer>
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                // DOM Elements
+                const recordButton = document.getElementById("recordButton");
+                const recordIcon = document.getElementById("recordIcon");
+                const statusText = document.getElementById("statusText");
+                const audioPlayer = document.getElementById("audioPlayer");
+                const consentModal = document.getElementById("consentModal");
+                const consentButton = document.getElementById("consentButton");
+                const contentWrapper =
+                    document.querySelector(".content-wrapper");
+                const connectionDot = document.getElementById("connectionDot");
+                const connectionText =
+                    document.getElementById("connectionText");
+                const conversationContainer =
+                    document.getElementById("conversation");
+                const visualizerCanvas = document.getElementById("visualizer");
+                const helpTitle = document.getElementById("helpTitle");
+                const helpContent = document.getElementById("helpContent");
+                const helpToggle = document.getElementById("helpToggle");
+                const audioStatus = document.getElementById("audioStatus");
+
+                // --- Consent Modal Logic ---
+                function initializeAppWithConsent() {
+                    contentWrapper.classList.add("blurred");
+                    recordButton.disabled = true;
+                    statusText.textContent =
+                        "Please review and agree to the consent notice.";
+                }
+
+                consentButton.addEventListener("click", () => {
+                    consentModal.style.display = "none";
+                    contentWrapper.classList.remove("blurred");
+                    recordButton.disabled = false;
+                    statusText.textContent =
+                        "Click microphone to start speaking";
+                });
+
+                initializeAppWithConsent();
+                // --- End Consent Modal Logic ---
+
+                // Help section toggle
+                helpTitle.addEventListener("click", () => {
+                    helpContent.classList.toggle("open");
+                    helpToggle.textContent = helpContent.classList.contains(
+                        "open",
+                    )
+                        ? "▲"
+                        : "▼";
+                });
+
+                // Canvas context for visualizer
+                const canvasCtx = visualizerCanvas.getContext("2d");
+
+                // Resize canvas to match parent dimensions
+                function resizeCanvas() {
+                    visualizerCanvas.width = visualizerCanvas.offsetWidth;
+                    visualizerCanvas.height = visualizerCanvas.offsetHeight;
+                }
+                window.addEventListener("resize", resizeCanvas);
+                resizeCanvas();
+
+                // App state
+                let isRecording = false;
+                let mediaRecorder = null;
+                let audioChunks = [];
+                let socket = null;
+                let audioContext = null;
+                let analyser = null;
+                let silenceStart = null;
+                let animationFrame = null;
+
+                // Constants for audio processing
+                const SILENCE_THRESHOLD = -50; // dB
+                const SILENCE_DURATION = 1500; // ms (1.5 seconds)
+
+                // Connect to WebSocket
+                function connectWebSocket() {
+                    const protocol =
+                        window.location.protocol === "https:" ? "wss:" : "ws:";
+                    const wsUrl = `${protocol}//${window.location.host}/ws/talk`;
+
+                    socket = new WebSocket(wsUrl);
+
+                    socket.onopen = () => {
+                        connectionDot.classList.add("connected");
+                        connectionText.textContent = "Connected";
+                        statusText.textContent = "Ready to record";
+                        console.log("WebSocket connection established");
+                    };
+
+                    socket.onmessage = (event) => {
+                        // Check if the message is binary (audio) or text (status)
+                        if (event.data instanceof Blob) {
+                            handleAudioResponse(event.data);
+                        } else {
+                            try {
+                                const statusUpdate = JSON.parse(event.data);
+                                if (statusUpdate.type === "status") {
+                                    // Display the status message to the user and reset state
+                                    statusText.textContent =
+                                        statusUpdate.message;
+                                    audioStatus.textContent = "Ready";
+                                }
+                            } catch (e) {
+                                console.error(
+                                    "Received non-blob message that wasn't valid JSON:",
+                                    e,
+                                );
+                            }
+                        }
+                    };
+
+                    socket.onclose = () => {
+                        connectionDot.classList.remove("connected");
+                        connectionText.textContent = "Disconnected";
+                        statusText.textContent =
+                            "Connection lost. Please reload.";
+                        console.log("WebSocket connection closed");
+
+                        // Try to reconnect after a delay
+                        setTimeout(connectWebSocket, 3000);
+                    };
+
+                    socket.onerror = (error) => {
+                        console.error("WebSocket error:", error);
+                        statusText.textContent = "Connection error";
+                    };
+                }
+
+                // Handle audio response from server
+                async function handleAudioResponse(data) {
+                    // Convert the binary audio data to a Blob
+                    const audioBlob = new Blob([data], { type: "audio/mp3" });
+
+                    // Create a URL for the Blob
+                    const audioUrl = URL.createObjectURL(audioBlob);
+
+                    // Set the audio source
+                    audioPlayer.src = audioUrl;
+
+                    // Add system message to conversation
+                    const transcript = "Audio response received";
+                    addMessageToConversation(transcript, "system");
+
+                    // Play the audio
+                    try {
+                        await audioPlayer.play();
+                        statusText.textContent = "Playing response...";
+                        audioStatus.textContent = "Playing";
+                    } catch (err) {
+                        console.error("Error playing audio:", err);
+                        statusText.textContent =
+                            "Error playing audio. Click to play manually.";
+                        audioStatus.textContent = "Error";
+                    }
+                }
+
+                // Add message to conversation
+                function addMessageToConversation(text, type) {
+                    const messageDiv = document.createElement("div");
+                    messageDiv.classList.add("message");
+                    messageDiv.classList.add(
+                        type === "user" ? "user-message" : "system-message",
+                    );
+                    messageDiv.textContent = text;
+
+                    conversationContainer.appendChild(messageDiv);
+                    conversationContainer.scrollTop =
+                        conversationContainer.scrollHeight;
+                }
+
+                // Detect silence in audio stream
+                function detectSilence(analyser, callback) {
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+
+                    function checkSilence() {
+                        if (!isRecording) return;
+
+                        analyser.getByteFrequencyData(dataArray);
+
+                        // Calculate average volume
+                        let sum = 0;
+                        for (let i = 0; i < bufferLength; i++) {
+                            sum += dataArray[i];
+                        }
+                        const average = sum / bufferLength;
+
+                        // Convert to dB
+                        const dB = 20 * Math.log10(average / 255);
+
+                        // Update visualizer
+                        drawVisualizer(dataArray, bufferLength);
+
+                        if (dB < SILENCE_THRESHOLD) {
+                            if (!silenceStart) {
+                                silenceStart = Date.now();
+                            } else if (
+                                Date.now() - silenceStart >
+                                SILENCE_DURATION
+                            ) {
+                                callback();
+                                return;
+                            }
+                        } else {
+                            silenceStart = null;
+                        }
+
+                        animationFrame = requestAnimationFrame(checkSilence);
+                    }
+
+                    checkSilence();
+                }
+
+                // Draw audio visualizer
+                function drawVisualizer(dataArray, bufferLength) {
+                    const width = visualizerCanvas.width;
+                    const height = visualizerCanvas.height;
+
+                    canvasCtx.clearRect(0, 0, width, height);
+
+                    // Draw background
+                    canvasCtx.fillStyle = "rgba(0, 0, 0, 0.05)";
+                    canvasCtx.fillRect(0, 0, width, height);
+
+                    // Calculate bar width based on canvas size and buffer length
+                    const barWidth = (width / bufferLength) * 2.5;
+                    let x = 0;
+
+                    // Draw frequency bars
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArray[i] / 255) * height;
+
+                        // Create gradient for bars
+                        const gradient = canvasCtx.createLinearGradient(
+                            0,
+                            height,
+                            0,
+                            height - barHeight,
+                        );
+                        gradient.addColorStop(0, "rgba(57, 73, 171, 0.8)");
+                        gradient.addColorStop(1, "rgba(30, 136, 229, 0.6)");
+
+                        canvasCtx.fillStyle = gradient;
+                        canvasCtx.fillRect(
+                            x,
+                            height - barHeight,
+                            barWidth,
+                            barHeight,
+                        );
+
+                        x += barWidth + 1;
+                    }
+                }
+
+                // Start recording
+                async function startRecording() {
+                    try {
+                        const stream =
+                            await navigator.mediaDevices.getUserMedia({
+                                audio: true,
+                            });
+
+                        // Set up AudioContext for silence detection and visualization
+                        audioContext = new (window.AudioContext ||
+                            window.webkitAudioContext)();
+                        const source =
+                            audioContext.createMediaStreamSource(stream);
+                        analyser = audioContext.createAnalyser();
+                        analyser.fftSize = 256;
+                        source.connect(analyser);
+
+                        mediaRecorder = new MediaRecorder(stream, {
+                            mimeType: "audio/webm;codecs=opus",
+                            audioBitsPerSecond: 16000,
+                        });
+
+                        mediaRecorder.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                audioChunks.push(event.data);
+                            }
+                        };
+
+                        mediaRecorder.onstop = async () => {
+                            const audioBlob = new Blob(audioChunks, {
+                                type: "audio/webm",
+                            });
+                            audioChunks = [];
+
+                            // Add a size check to prevent sending empty audio blobs
+                            if (audioBlob.size < 500) {
+                                // 500 bytes as a threshold for non-empty audio
+                                console.log(
+                                    "Audio blob too small, likely silence. Not sending.",
+                                );
+                                statusText.textContent =
+                                    "I didn't catch that. Please try again.";
+                                audioStatus.textContent = "Ready";
+                                // Stop all tracks
+                                stream
+                                    .getTracks()
+                                    .forEach((track) => track.stop());
+                                return;
+                            }
+
+                            // Add user message to conversation
+                            addMessageToConversation(
+                                "Recording processed...",
+                                "user",
+                            );
+
+                            // Send the raw audio blob to the server
+                            if (
+                                socket &&
+                                socket.readyState === WebSocket.OPEN
+                            ) {
+                                socket.send(audioBlob);
+                                statusText.textContent = "Processing...";
+                                audioStatus.textContent = "Processing";
+                            } else {
+                                statusText.textContent =
+                                    "Connection lost. Try again.";
+                                audioStatus.textContent = "Error";
+                                connectWebSocket();
+                            }
+
+                            // Stop all tracks
+                            stream.getTracks().forEach((track) => track.stop());
+
+                            // Clear visualizer
+                            if (animationFrame) {
+                                cancelAnimationFrame(animationFrame);
+                                animationFrame = null;
+                            }
+                            canvasCtx.clearRect(
+                                0,
+                                0,
+                                visualizerCanvas.width,
+                                visualizerCanvas.height,
+                            );
+                        };
+
+                        // Start recording
+                        mediaRecorder.start(100);
+                        isRecording = true;
+                        recordButton.classList.add("recording");
+                        statusText.textContent =
+                            "Recording... (will stop after silence)";
+                        audioStatus.textContent = "Recording";
+
+                        // Set up silence detection
+                        detectSilence(analyser, () => {
+                            if (isRecording) {
+                                stopRecording();
+                            }
+                        });
+                    } catch (error) {
+                        console.error("Error accessing microphone:", error);
+                        statusText.textContent =
+                            "Error accessing microphone. Check permissions.";
+                        audioStatus.textContent = "Error";
+                    }
+                }
+
+                // Stop recording
+                function stopRecording() {
+                    if (mediaRecorder && isRecording) {
+                        mediaRecorder.stop();
+                        isRecording = false;
+                        recordButton.classList.remove("recording");
+                        statusText.textContent = "Processing audio...";
+                        audioStatus.textContent = "Processing";
+                        silenceStart = null;
+                    }
+                }
+
+                // Event listeners
+                recordButton.addEventListener("click", () => {
+                    if (!isRecording) {
+                        startRecording();
+                    } else {
+                        stopRecording();
+                    }
+                });
+
+                audioPlayer.addEventListener("ended", () => {
+                    statusText.textContent = "Click microphone to speak again";
+                    audioStatus.textContent = "Ready";
+                });
+
+                // Hide audio player initially
+                audioPlayer.style.display = "none";
+
+                // Show audio player when there's audio to play
+                audioPlayer.addEventListener("loadedmetadata", () => {
+                    audioPlayer.style.display = "block";
+                });
+
+                // Connect to WebSocket when the page loads
+                connectWebSocket();
+
+                // Initial help state - open on first load
+                setTimeout(() => {
+                    helpContent.classList.add("open");
+                }, 500);
+            });
+        </script>
+    </body>
+</html>
