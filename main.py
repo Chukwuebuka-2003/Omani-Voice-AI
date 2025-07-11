@@ -177,6 +177,6 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.info(f"[{session_id}] Closing WebSocket connection for {websocket.client.host}.")
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8040"))
+    port = int(os.getenv("PORT", "8080"))
     logging.info(f"Starting server on http://localhost:{port}")
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
