@@ -26,6 +26,6 @@ COPY . .
 EXPOSE 8080
 
 # Define the command to run when the container starts.
-# This runs your FastAPI application using the Uvicorn server.
-# It listens on all available network interfaces (0.0.0.0) on port 8080.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Use Gunicorn as the process manager, running Uvicorn workers.
+# This is a more robust setup for production environments.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "main:app"]
