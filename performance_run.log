@@ -1,0 +1,119 @@
+INFO:     Started server process [65305]
+INFO:     Waiting for application startup.
+INFO:root:Safety audit logger configured to write to /home/type-shit/oman/logs/safety_audit.log
+INFO:root:Using default Google credential discovery.
+INFO:root:Application startup: Initializing async clients...
+INFO:root:Async TTS and STT clients initialized successfully.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8060 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55718 - "WebSocket /ws/talk" [accepted]
+INFO:root:[61c937c1-f038-47b5-b0b0-3a6ea9335879] WebSocket connection accepted from 127.0.0.1
+INFO:     connection open
+INFO:root:[61c937c1-f038-47b5-b0b0-3a6ea9335879] Client 127.0.0.1 disconnected gracefully.
+INFO:root:[61c937c1-f038-47b5-b0b0-3a6ea9335879] Closing WebSocket connection for 127.0.0.1.
+INFO:     connection closed
+INFO:     127.0.0.1:50358 - "GET /new HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50372 - "WebSocket /ws/talk" [accepted]
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] WebSocket connection accepted from 127.0.0.1
+INFO:     connection open
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Received 30338 bytes of webm audio. Converting...
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Audio conversion took 3.95s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: STT took 4.14s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Final transcript: 'طيب.'
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Result: SAFE
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Received response from primary model.
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: AI (LLM) response took 5.20s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: TTS synthesis took 1.06s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Full turn processed in 14.36s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Received 71557 bytes of webm audio. Converting...
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Audio conversion took 3.80s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: STT took 8.13s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Final transcript: 'اسمعي.'
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Result: SAFE
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Received response from primary model.
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: AI (LLM) response took 2.43s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: TTS synthesis took 0.60s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Full turn processed in 14.98s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Received 50184 bytes of webm audio. Converting...
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Audio conversion took 3.81s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: STT took 4.95s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Final transcript: 'سناب.'
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Result: SAFE
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Received response from primary model.
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: AI (LLM) response took 2.23s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: TTS synthesis took 0.69s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Full turn processed in 11.70s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Received 47048 bytes of webm audio. Converting...
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Audio conversion took 3.75s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: STT took 4.62s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Final transcript: 'امين.'
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] SEMANTIC CHECK: Result: SAFE
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] MAIN AI: Received response from primary model.
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: AI (LLM) response took 3.14s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: TTS synthesis took 0.94s
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] PERF: Full turn processed in 12.47s
+INFO:     127.0.0.1:52624 - "GET /new HTTP/1.1" 200 OK
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Client 127.0.0.1 disconnected gracefully.
+INFO:root:[62f10ccc-b379-4f91-89a6-06086fc77030] Closing WebSocket connection for 127.0.0.1.
+INFO:     connection closed
+INFO:     127.0.0.1:43230 - "WebSocket /ws/talk" [accepted]
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] WebSocket connection accepted from 127.0.0.1
+INFO:     connection open
+INFO:     127.0.0.1:52640 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52640 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] Received 46745 bytes of webm audio. Converting...
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: Audio conversion took 7.02s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: STT took 5.36s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] Final transcript: 'السلام عليكم.'
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] SEMANTIC CHECK: Result: SAFE
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] MAIN AI: Received response from primary model.
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: AI (LLM) response took 2.60s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: TTS synthesis took 1.44s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: Full turn processed in 16.42s
+INFO:     127.0.0.1:54256 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] Received 41582 bytes of webm audio. Converting...
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: Audio conversion took 5.10s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: STT took 33.58s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] Final transcript: 'السلام عليكم.'
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] SEMANTIC CHECK: Result: SAFE
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] MAIN AI: Received response from primary model.
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: AI (LLM) response took 2.09s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: TTS synthesis took 0.67s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: Full turn processed in 41.45s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] Received 41585 bytes of webm audio. Converting...
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: Audio conversion took 3.52s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: STT took 4.82s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] Final transcript: 'السلام عليكم الحمد لله.'
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] SEMANTIC CHECK: Performing safety analysis on transcript...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] SEMANTIC CHECK: Result: SAFE
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] MAIN AI: Attempting primary model (GPT-4o)...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] MAIN AI: Received response from primary model.
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: AI (LLM) response took 4.08s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: TTS synthesis took 1.01s
+INFO:root:[f24dff14-c1da-4eea-9d3a-6ff62fa8bae3] PERF: Full turn processed in 13.46s
