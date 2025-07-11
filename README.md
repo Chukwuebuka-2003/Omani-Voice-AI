@@ -73,8 +73,8 @@ The application follows a modern, decoupled architecture designed for scalabilit
 ### Installation Steps
 1.  **Clone the Repository:**
     ```bash
-    git clone <your-repository-url>
-    cd oman
+    git clone github.com/Chukwuebuka-2003/Omani-Voice-AI
+    cd Omani-Voice-Ai
     ```
 2.  **Create a Virtual Environment:**
     ```bash
@@ -87,7 +87,7 @@ The application follows a modern, decoupled architecture designed for scalabilit
     pip install -r requirements.txt
     ```
 4.  **Configure API Keys:**
-    - Create a file named `.env` in the `oman/` directory.
+    - Create a file named `.env` in the `Omani-Voice-AI/` directory.
     - Add your API keys to this file. The file should **not** be committed to version control.
     ```env
     # oman/.env
