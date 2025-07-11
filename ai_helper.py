@@ -38,11 +38,11 @@ except Exception as e:
 def _load_all_configs() -> dict:
     """Loads all configurations from prompt.yaml using an absolute path."""
     try:
-        # *** THE FIX IS HERE: Use the absolute path to find prompt.yaml ***
+
         prompt_path = PROJ_ROOT / "prompt.yaml"
         with open(prompt_path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
-        # ... (rest of the function is the same, loading all configs)
+
         semantic_check_config = data.get('semantic_safety_check', {})
         semantic_prompt = semantic_check_config.get('system_prompt')
         persona = data.get('persona', {})
@@ -87,7 +87,9 @@ def _load_all_configs() -> dict:
 
 
 CONFIG = _load_all_configs()
+
 safety_logger = getLogger("safety_audit")
+
 def keyword_risk_check(transcript: str, session_id: str) -> dict | None:
     transcript_lower = transcript.lower()
     risk_config = CONFIG.get("risk_analysis_config", {})
