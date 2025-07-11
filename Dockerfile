@@ -28,4 +28,5 @@ EXPOSE 8080
 # Define the command to run when the container starts.
 # Use Gunicorn as the process manager, running Uvicorn workers.
 # This is a more robust setup for production environments.
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "main:app"]
+# We enable debug logging to get more output if the application fails to start.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--log-level", "debug", "main:app"]
