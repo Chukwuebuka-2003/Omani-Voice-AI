@@ -21,54 +21,50 @@ from dotenv import load_dotenv
 
 from ai_helper import get_ai_response
 
+# This ensures that files are found regardless of the execution context.
+PROJ_ROOT = Path(__file__).parent
+STATIC_DIR = PROJ_ROOT / "static"
+TEMPLATES_DIR = PROJ_ROOT / "templates"
+LOGS_DIR = PROJ_ROOT / "logs"
+
 def get_google_credentials():
-    """
-    Gets Google Cloud credentials. It checks for a JSON string in an environment
-    variable first (for serverless environments like Vercel), and falls back to
-    default discovery (local file path) if it's not found.
-    """
+    # ... (this function remains the same)
     credentials_json_str = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
     if credentials_json_str:
-        logging.info("Found GOOGLE_APPLICATION_CREDENTIALS_JSON env var. Loading credentials from JSON string.")
+        logging.info("Loading credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON.")
         try:
             credentials_info = json.loads(credentials_json_str)
             return service_account.Credentials.from_service_account_info(credentials_info)
         except json.JSONDecodeError:
-            logging.critical("Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. The string is not valid JSON.")
+            logging.critical("Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON.")
             return None
     else:
-        logging.info("GOOGLE_APPLICATION_CREDENTIALS_JSON not found. Using default credential discovery.")
-        # When no credentials are provided, the library uses the default
-        # mechanism (like the GOOGLE_APPLICATION_CREDENTIALS file path env var).
+        logging.info("Using default Google credential discovery.")
         return None
 
 def configure_logging():
-    # ... (this function remains the same) ...
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     safety_logger = logging.getLogger("safety_audit")
     safety_logger.setLevel(logging.WARNING)
     if not safety_logger.handlers:
-        log_dir = Path(__file__).parent / "logs"
-        log_dir.mkdir(exist_ok=True)
-        log_file_path = log_dir / "safety_audit.log"
-        handler = RotatingFileHandler(
-            log_file_path, maxBytes=10 * 1024 * 1024, backupCount=5
-        )
+        LOGS_DIR.mkdir(exist_ok=True)
+        log_file_path = LOGS_DIR / "safety_audit.log"
+        handler = RotatingFileHandler(log_file_path, maxBytes=10 * 1024 * 1024, backupCount=5)
         formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         safety_logger.addHandler(handler)
         root_logger.info("Safety audit logger configured to write to %s", log_file_path)
 
-load_dotenv()
-
-# Application State and Lifespan
+# Application Lifespan
 clients = {}
 google_credentials = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global google_credentials
+    # Load .env file from the project root
+    load_dotenv(PROJ_ROOT / ".env")
     configure_logging()
 
     google_credentials = get_google_credentials()
@@ -88,6 +84,7 @@ async def lifespan(app: FastAPI):
         await clients["tts"].close()
     logging.info("Async TTS client closed successfully.")
 
+#FastAPI App Initialization
 app = FastAPI(
     title="Omani Arabic Speech API",
     description="Real-time transcription and synthesis of Omani Arabic.",
@@ -95,54 +92,32 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+#Static Files and Template
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+STATIC_DIR.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-templates = Jinja2Templates(directory="templates")
-try:
-    os.makedirs("static", exist_ok=True)
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-except Exception as e:
-    logging.warning(f"Could not set up static files directory: {e}")
+#  The rest of main.py: STT Config, Routes, WebSocket Endpoint
+STREAMING_CONFIG = speech_v1.StreamingRecognitionConfig(config=speech_v1.RecognitionConfig(encoding=speech_v1.RecognitionConfig.AudioEncoding.LINEAR16, sample_rate_hertz=16000, language_code="ar-OM", enable_automatic_punctuation=True), single_utterance=True)
+VOICE_PARAMS = texttospeech_v1.VoiceSelectionParams(language_code="ar-OM", ssml_gender=texttospeech_v1.SsmlVoiceGender.FEMALE)
+AUDIO_CONFIG = texttospeech_v1.AudioConfig(audio_encoding=texttospeech_v1.AudioEncoding.MP3)
 
-STREAMING_CONFIG = speech_v1.StreamingRecognitionConfig(
-    config=speech_v1.RecognitionConfig(
-        encoding=speech_v1.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=16000,
-        language_code="ar-OM",
-        enable_automatic_punctuation=True,
-    ),
-    single_utterance=True,
-)
-VOICE_PARAMS = texttospeech_v1.VoiceSelectionParams(
-    language_code="ar-OM", ssml_gender=texttospeech_v1.SsmlVoiceGender.FEMALE
-)
-AUDIO_CONFIG = texttospeech_v1.AudioConfig(
-    audio_encoding=texttospeech_v1.AudioEncoding.MP3
-)
-
-# HTTP Routes
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def home(request: Request): return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/new", response_class=HTMLResponse)
-async def new_interface(request: Request):
-    return templates.TemplateResponse("new_interface.html", {"request": request})
+async def new_interface(request: Request): return templates.TemplateResponse("new_interface.html", {"request": request})
 
-
-#  Real-Time WebSocket Endpoint
 @app.websocket("/ws/talk")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     session_id = str(uuid.uuid4())
     logging.info(f"[{session_id}] WebSocket connection accepted from {websocket.client.host}")
     conversation_history = []
-
     try:
         while True:
             raw_audio_data = await websocket.receive_bytes()
-            if not raw_audio_data:
-                continue
-
+            if not raw_audio_data: continue
             turn_start_time = datetime.utcnow()
             logging.info(f"[{session_id}] Received {len(raw_audio_data)} bytes of webm audio. Converting...")
             try:
@@ -154,62 +129,41 @@ async def websocket_endpoint(websocket: WebSocket):
             except Exception as e:
                 logging.error(f"[{session_id}] Failed to convert audio: {e}", exc_info=True)
                 continue
-
             transcript = ""
             try:
-                # Use the globally configured credentials for the on-demand STT client
                 async with speech_v1.SpeechAsyncClient(credentials=google_credentials) as speech_client:
-                    stt_requests = [
-                        speech_v1.StreamingRecognizeRequest(streaming_config=STREAMING_CONFIG),
-                        speech_v1.StreamingRecognizeRequest(audio_content=converted_audio_data),
-                    ]
+                    stt_requests = [speech_v1.StreamingRecognizeRequest(streaming_config=STREAMING_CONFIG), speech_v1.StreamingRecognizeRequest(audio_content=converted_audio_data)]
                     streaming_responses = await speech_client.streaming_recognize(requests=stt_requests)
                     async for response in streaming_responses:
                         if response.results and response.results[0].alternatives and response.results[0].is_final:
                             transcript = response.results[0].alternatives[0].transcript.strip()
-                            if transcript:
-                                break
+                            if transcript: break
             except GoogleAPIError as e:
                 logging.error(f"[{session_id}] Google STT API Error: {e}", exc_info=True)
                 continue
             except Exception as e:
                 logging.error(f"[{session_id}] STT request failed: {e}", exc_info=True)
                 continue
-
             time_after_stt = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: STT took {(time_after_stt - time_after_conversion).total_seconds():.2f}s")
-
             if not transcript:
                 logging.warning(f"[{session_id}] STT stream ended without a final transcript.")
                 await websocket.send_json({"type": "status", "message": "لم ألتقط ذلك. الرجاء المحاولة مرة أخرى."})
                 continue
-
             logging.info(f"[{session_id}] Final transcript: '{transcript}'")
-
-            response_text = await get_ai_response(
-                transcript=transcript,
-                conversation_history=conversation_history,
-                session_id=session_id,
-                timestamp=datetime.utcnow().isoformat(),
-            )
+            response_text = await get_ai_response(transcript=transcript, conversation_history=conversation_history, session_id=session_id, timestamp=datetime.utcnow().isoformat())
             time_after_llm = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: AI (LLM) response took {(time_after_llm - time_after_stt).total_seconds():.2f}s")
-
             conversation_history.append({"role": "user", "content": transcript})
             conversation_history.append({"role": "assistant", "content": response_text})
-
             tts_client = clients["tts"]
             synthesis_input = texttospeech_v1.SynthesisInput(text=response_text)
-            tts_response = await tts_client.synthesize_speech(
-                input=synthesis_input, voice=VOICE_PARAMS, audio_config=AUDIO_CONFIG,
-            )
+            tts_response = await tts_client.synthesize_speech(input=synthesis_input, voice=VOICE_PARAMS, audio_config=AUDIO_CONFIG)
             time_after_tts = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: TTS synthesis took {(time_after_tts - time_after_llm).total_seconds():.2f}s")
-
             await websocket.send_bytes(tts_response.audio_content)
             total_turn_time = (datetime.utcnow() - turn_start_time).total_seconds()
             logging.info(f"[{session_id}] PERF: Full turn processed in {total_turn_time:.2f}s")
-
     except WebSocketDisconnect:
         logging.info(f"[{session_id}] Client {websocket.client.host} disconnected gracefully.")
     except Exception as e:
