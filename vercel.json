@@ -1,7 +1,7 @@
 {
     "builds": [
       {
-        "src": "relig.py",
+        "src": "main.py",
         "use": "@vercel/python"
       }
     ],
