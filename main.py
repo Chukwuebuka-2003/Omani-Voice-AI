@@ -8,36 +8,46 @@ from pathlib import Path
 import uuid
 from datetime import datetime
 import uvicorn
+import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from google.cloud import speech_v1
-from google.cloud import texttospeech_v1
-from google.cloud.exceptions import GoogleCloudError
+from google.cloud import speech_v1, texttospeech_v1
+from google.oauth2 import service_account
+from google.api_core.exceptions import GoogleAPIError
 from dotenv import load_dotenv
 
 from ai_helper import get_ai_response
 
+def get_google_credentials():
+    """
+    Gets Google Cloud credentials. It checks for a JSON string in an environment
+    variable first (for serverless environments like Vercel), and falls back to
+    default discovery (local file path) if it's not found.
+    """
+    credentials_json_str = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if credentials_json_str:
+        logging.info("Found GOOGLE_APPLICATION_CREDENTIALS_JSON env var. Loading credentials from JSON string.")
+        try:
+            credentials_info = json.loads(credentials_json_str)
+            return service_account.Credentials.from_service_account_info(credentials_info)
+        except json.JSONDecodeError:
+            logging.critical("Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. The string is not valid JSON.")
+            return None
+    else:
+        logging.info("GOOGLE_APPLICATION_CREDENTIALS_JSON not found. Using default credential discovery.")
+        # When no credentials are provided, the library uses the default
+        # mechanism (like the GOOGLE_APPLICATION_CREDENTIALS file path env var).
+        return None
+
 def configure_logging():
-    """Sets up a file-based logger for safety-critical events."""
-    # Get the root logger provided by Uvicorn
+    # ... (this function remains the same) ...
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-
-    # the dedicated safety logger
     safety_logger = logging.getLogger("safety_audit")
     safety_logger.setLevel(logging.WARNING)
-    safety_logger.propagate = False
-
-    log_dir = Path(__file__).parent / "logs"
-    log_dir.mkdir(exist_ok=True)
-    log_file_path = log_dir / "safety_audit.log"
-
-    safety_logger.propagate = False
-
-    # Only add a file handler if one doesn't already exist (prevents duplicates on reload)
     if not safety_logger.handlers:
         log_dir = Path(__file__).parent / "logs"
         log_dir.mkdir(exist_ok=True)
@@ -53,29 +63,23 @@ def configure_logging():
 load_dotenv()
 
 # Application State and Lifespan
-# This dictionary will hold our async clients, initialized during app startup.
 clients = {}
+google_credentials = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Handles startup and shutdown events for the FastAPI application.
-    Initializes logging and async clients for Google Cloud services.
-    """
-    configure_logging()  # Configure logging within the lifespan event
-    logging.info("Application startup: Initializing async Google Cloud clients...")
+    global google_credentials
+    configure_logging()
+
+    google_credentials = get_google_credentials()
+
+    logging.info("Application startup: Initializing async TTS client...")
     try:
-        # only initialize the TTS client once, as it is stateless.
-        # The STT client will be created on-demand for each request.
-        clients["tts"] = texttospeech_v1.TextToSpeechAsyncClient()
+        clients["tts"] = texttospeech_v1.TextToSpeechAsyncClient(credentials=google_credentials)
         logging.info("Async TTS client initialized successfully.")
-    except GoogleCloudError as e:
-        logging.critical(
-            "Fatal: Failed to initialize Google Cloud TTS client on startup.", exc_info=True
-        )
-        raise RuntimeError(
-            "Could not initialize Google Cloud TTS client. Check credentials."
-        ) from e
+    except Exception as e:
+        logging.critical("Fatal: Failed to initialize Google Cloud TTS client on startup.", exc_info=True)
+        raise RuntimeError("Could not initialize Google Cloud TTS client.") from e
 
     yield
 
@@ -87,20 +91,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Omani Arabic Speech API",
     description="Real-time transcription and synthesis of Omani Arabic.",
-    version="4.0.0", # Final correct version. I started with version 1, 2 and 3 before i got this working version 4
+    version="4.0.0",
     lifespan=lifespan,
 )
 
-# Set up templates and static files for FastHTML
+
 templates = Jinja2Templates(directory="templates")
-# Create a static files directory if needed
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
 except Exception as e:
     logging.warning(f"Could not set up static files directory: {e}")
 
-#  Streaming and Voice Configuration
 STREAMING_CONFIG = speech_v1.StreamingRecognitionConfig(
     config=speech_v1.RecognitionConfig(
         encoding=speech_v1.RecognitionConfig.AudioEncoding.LINEAR16,
@@ -109,7 +111,6 @@ STREAMING_CONFIG = speech_v1.StreamingRecognitionConfig(
         enable_automatic_punctuation=True,
     ),
     single_utterance=True,
-    interim_results=True,
 )
 VOICE_PARAMS = texttospeech_v1.VoiceSelectionParams(
     language_code="ar-OM", ssml_gender=texttospeech_v1.SsmlVoiceGender.FEMALE
@@ -118,20 +119,15 @@ AUDIO_CONFIG = texttospeech_v1.AudioConfig(
     audio_encoding=texttospeech_v1.AudioEncoding.MP3
 )
 
-#  HTTP Routes
+# HTTP Routes
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """
-    Serves the main interface for the Omani Arabic transcription and synthesis application.
-    """
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/new", response_class=HTMLResponse)
 async def new_interface(request: Request):
-    """
-    Serves the new interface for the Omani Arabic transcription and synthesis application.
-    """
     return templates.TemplateResponse("new_interface.html", {"request": request})
+
 
 #  Real-Time WebSocket Endpoint
 @app.websocket("/ws/talk")
@@ -141,19 +137,13 @@ async def websocket_endpoint(websocket: WebSocket):
     logging.info(f"[{session_id}] WebSocket connection accepted from {websocket.client.host}")
     conversation_history = []
 
-    # This outer loop handles multiple conversational turns within the same WebSocket session
     try:
         while True:
-            # Receive raw webm audio data from the client.
             raw_audio_data = await websocket.receive_bytes()
             if not raw_audio_data:
-                logging.info(f"[{session_id}] Received empty message; waiting for next utterance.")
                 continue
 
-            # Latency Measurement Start
             turn_start_time = datetime.utcnow()
-
-            #  Convert audio to the required format on the server.
             logging.info(f"[{session_id}] Received {len(raw_audio_data)} bytes of webm audio. Converting...")
             try:
                 audio_segment = AudioSegment.from_file(io.BytesIO(raw_audio_data), format="webm")
@@ -165,25 +155,23 @@ async def websocket_endpoint(websocket: WebSocket):
                 logging.error(f"[{session_id}] Failed to convert audio: {e}", exc_info=True)
                 continue
 
-            # Stream audio to the STT API using a context manager for robustness.
             transcript = ""
             try:
-                # Use 'async with' to create a fully isolated client for each turn.
-                async with speech_v1.SpeechAsyncClient() as speech_client:
-                    # Create the request list directly.
+                # Use the globally configured credentials for the on-demand STT client
+                async with speech_v1.SpeechAsyncClient(credentials=google_credentials) as speech_client:
                     stt_requests = [
                         speech_v1.StreamingRecognizeRequest(streaming_config=STREAMING_CONFIG),
                         speech_v1.StreamingRecognizeRequest(audio_content=converted_audio_data),
                     ]
                     streaming_responses = await speech_client.streaming_recognize(requests=stt_requests)
-
-                    # Process the responses. With single_utterance=True, we expect one primary result.
                     async for response in streaming_responses:
                         if response.results and response.results[0].alternatives and response.results[0].is_final:
                             transcript = response.results[0].alternatives[0].transcript.strip()
-                            # We can break after the first final result.
                             if transcript:
                                 break
+            except GoogleAPIError as e:
+                logging.error(f"[{session_id}] Google STT API Error: {e}", exc_info=True)
+                continue
             except Exception as e:
                 logging.error(f"[{session_id}] STT request failed: {e}", exc_info=True)
                 continue
@@ -198,7 +186,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
             logging.info(f"[{session_id}] Final transcript: '{transcript}'")
 
-            #Get a response from the AI model.
             response_text = await get_ai_response(
                 transcript=transcript,
                 conversation_history=conversation_history,
@@ -208,11 +195,9 @@ async def websocket_endpoint(websocket: WebSocket):
             time_after_llm = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: AI (LLM) response took {(time_after_llm - time_after_stt).total_seconds():.2f}s")
 
-            #Update conversation history.
             conversation_history.append({"role": "user", "content": transcript})
             conversation_history.append({"role": "assistant", "content": response_text})
 
-            # Synthesize the AI's response to speech.
             tts_client = clients["tts"]
             synthesis_input = texttospeech_v1.SynthesisInput(text=response_text)
             tts_response = await tts_client.synthesize_speech(
@@ -221,7 +206,6 @@ async def websocket_endpoint(websocket: WebSocket):
             time_after_tts = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: TTS synthesis took {(time_after_tts - time_after_llm).total_seconds():.2f}s")
 
-            #  Send the synthesized audio back to the client.
             await websocket.send_bytes(tts_response.audio_content)
             total_turn_time = (datetime.utcnow() - turn_start_time).total_seconds()
             logging.info(f"[{session_id}] PERF: Full turn processed in {total_turn_time:.2f}s")
@@ -229,15 +213,11 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         logging.info(f"[{session_id}] Client {websocket.client.host} disconnected gracefully.")
     except Exception as e:
-        # Log any other exceptions that might occur during the conversation.
         logging.error(f"[{session_id}] An unexpected error occurred in the WebSocket loop: {e}", exc_info=True)
     finally:
-        # This block ensures cleanup happens if the loop exits for any reason.
         logging.info(f"[{session_id}] Closing WebSocket connection for {websocket.client.host}.")
-        # FastAPI's decorator handles the actual closing.
-
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8040")) # Default to 8001 as per usage
+    port = int(os.getenv("PORT", "8040"))
     logging.info(f"Starting server on http://localhost:{port}")
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
