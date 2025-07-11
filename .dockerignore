@@ -24,7 +24,7 @@ __pycache__/
 # Local environment files and secrets
 .env
 .env.*
-*.json
+
 
 # Logs
 logs/
