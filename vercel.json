@@ -1,0 +1,15 @@
+{
+    "builds": [
+      {
+        "src": "relig.py",
+        "use": "@vercel/python"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "relig.py"
+      }
+    ]
+    
+  }
