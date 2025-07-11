@@ -8,7 +8,7 @@
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "relig.py"
+        "dest": "main.py"
       }
     ]
     
