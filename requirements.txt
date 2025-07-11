@@ -8,5 +8,6 @@ PyYAML
 google-generativeai
 pydub
 websockets
-pydub
+
 aiohttp
+gunicorn
