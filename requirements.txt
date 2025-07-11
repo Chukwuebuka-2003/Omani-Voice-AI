@@ -1,4 +1,4 @@
-fastapi
+fastapi[all]
 uvicorn
 google-cloud-speech
 google-cloud-texttospeech
