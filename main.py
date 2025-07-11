@@ -21,14 +21,13 @@ from dotenv import load_dotenv
 
 from ai_helper import get_ai_response
 
-# This ensures that files are found regardless of the execution context.
+# Absolute Path Configuration
 PROJ_ROOT = Path(__file__).parent
 STATIC_DIR = PROJ_ROOT / "static"
 TEMPLATES_DIR = PROJ_ROOT / "templates"
 LOGS_DIR = PROJ_ROOT / "logs"
 
 def get_google_credentials():
-    # ... (this function remains the same)
     credentials_json_str = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
     if credentials_json_str:
         logging.info("Loading credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON.")
@@ -63,7 +62,6 @@ google_credentials = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global google_credentials
-    # Load .env file from the project root
     load_dotenv(PROJ_ROOT / ".env")
     configure_logging()
 
@@ -84,30 +82,43 @@ async def lifespan(app: FastAPI):
         await clients["tts"].close()
     logging.info("Async TTS client closed successfully.")
 
-#FastAPI App Initialization
+# FastAPI App Initialization
 app = FastAPI(
     title="Omani Arabic Speech API",
     description="Real-time transcription and synthesis of Omani Arabic.",
     version="4.0.0",
     lifespan=lifespan,
-)
 
-#Static Files and Template
+#  Static Files and Templates
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 STATIC_DIR.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-#  The rest of main.py: STT Config, Routes, WebSocket Endpoint
-STREAMING_CONFIG = speech_v1.StreamingRecognitionConfig(config=speech_v1.RecognitionConfig(encoding=speech_v1.RecognitionConfig.AudioEncoding.LINEAR16, sample_rate_hertz=16000, language_code="ar-OM", enable_automatic_punctuation=True), single_utterance=True)
-VOICE_PARAMS = texttospeech_v1.VoiceSelectionParams(language_code="ar-OM", ssml_gender=texttospeech_v1.SsmlVoiceGender.FEMALE)
-AUDIO_CONFIG = texttospeech_v1.AudioConfig(audio_encoding=texttospeech_v1.AudioEncoding.MP3)
+# STT and TTS Configurations
+STREAMING_CONFIG = speech_v1.StreamingRecognitionConfig(
+    config=speech_v1.RecognitionConfig(
+        encoding=speech_v1.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
+        language_code="ar-OM",
+        enable_automatic_punctuation=True,
+    ),
+    single_utterance=True,
+)
+VOICE_PARAMS = texttospeech_v1.VoiceSelectionParams(
+    language_code="ar-OM", ssml_gender=texttospeech_v1.SsmlVoiceGender.FEMALE
+)
+AUDIO_CONFIG = texttospeech_v1.AudioConfig(
+    audio_encoding=texttospeech_v1.AudioEncoding.MP3
+)
 
+# HTTP Routes
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request): return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/new", response_class=HTMLResponse)
 async def new_interface(request: Request): return templates.TemplateResponse("new_interface.html", {"request": request})
 
+# --- Real-Time WebSocket Endpoint ---
 @app.websocket("/ws/talk")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -118,6 +129,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             raw_audio_data = await websocket.receive_bytes()
             if not raw_audio_data: continue
+
             turn_start_time = datetime.utcnow()
             logging.info(f"[{session_id}] Received {len(raw_audio_data)} bytes of webm audio. Converting...")
             try:
@@ -129,41 +141,58 @@ async def websocket_endpoint(websocket: WebSocket):
             except Exception as e:
                 logging.error(f"[{session_id}] Failed to convert audio: {e}", exc_info=True)
                 continue
+
+
             transcript = ""
             try:
                 async with speech_v1.SpeechAsyncClient(credentials=google_credentials) as speech_client:
-                    stt_requests = [speech_v1.StreamingRecognizeRequest(streaming_config=STREAMING_CONFIG), speech_v1.StreamingRecognizeRequest(audio_content=converted_audio_data)]
+                    stt_requests = [
+                        speech_v1.StreamingRecognizeRequest(streaming_config=STREAMING_CONFIG),
+                        speech_v1.StreamingRecognizeRequest(audio_content=converted_audio_data),
+                    ]
                     streaming_responses = await speech_client.streaming_recognize(requests=stt_requests)
                     async for response in streaming_responses:
                         if response.results and response.results[0].alternatives and response.results[0].is_final:
                             transcript = response.results[0].alternatives[0].transcript.strip()
-                            if transcript: break
-            except GoogleAPIError as e:
-                logging.error(f"[{session_id}] Google STT API Error: {e}", exc_info=True)
-                continue
+                            if transcript: break # Exit after the first valid final result
             except Exception as e:
                 logging.error(f"[{session_id}] STT request failed: {e}", exc_info=True)
                 continue
+
             time_after_stt = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: STT took {(time_after_stt - time_after_conversion).total_seconds():.2f}s")
+
             if not transcript:
                 logging.warning(f"[{session_id}] STT stream ended without a final transcript.")
                 await websocket.send_json({"type": "status", "message": "لم ألتقط ذلك. الرجاء المحاولة مرة أخرى."})
                 continue
+
             logging.info(f"[{session_id}] Final transcript: '{transcript}'")
-            response_text = await get_ai_response(transcript=transcript, conversation_history=conversation_history, session_id=session_id, timestamp=datetime.utcnow().isoformat())
+
+            response_text = await get_ai_response(
+                transcript=transcript,
+                conversation_history=conversation_history,
+                session_id=session_id,
+                timestamp=datetime.utcnow().isoformat(),
+            )
             time_after_llm = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: AI (LLM) response took {(time_after_llm - time_after_stt).total_seconds():.2f}s")
+
             conversation_history.append({"role": "user", "content": transcript})
             conversation_history.append({"role": "assistant", "content": response_text})
+
             tts_client = clients["tts"]
             synthesis_input = texttospeech_v1.SynthesisInput(text=response_text)
-            tts_response = await tts_client.synthesize_speech(input=synthesis_input, voice=VOICE_PARAMS, audio_config=AUDIO_CONFIG)
+            tts_response = await tts_client.synthesize_speech(
+                input=synthesis_input, voice=VOICE_PARAMS, audio_config=AUDIO_CONFIG,
+            )
             time_after_tts = datetime.utcnow()
             logging.info(f"[{session_id}] PERF: TTS synthesis took {(time_after_tts - time_after_llm).total_seconds():.2f}s")
+
             await websocket.send_bytes(tts_response.audio_content)
             total_turn_time = (datetime.utcnow() - turn_start_time).total_seconds()
             logging.info(f"[{session_id}] PERF: Full turn processed in {total_turn_time:.2f}s")
+
     except WebSocketDisconnect:
         logging.info(f"[{session_id}] Client {websocket.client.host} disconnected gracefully.")
     except Exception as e:
