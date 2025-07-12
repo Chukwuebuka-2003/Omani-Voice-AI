@@ -62,6 +62,12 @@ The application follows a modern, decoupled architecture designed for scalabilit
 
 The FastAPI Backend Server was deployed on Huggingface Docker space
 
+The latency is <20s
+
+
+<img width="1366" height="693" alt="Screenshot From 2025-07-12 01-10-20" src="https://github.com/user-attachments/assets/26a6bb46-4de6-4a4c-9bc6-2f22b92ee826" />
+
+
 ## Setup and Installation
 
 ### Prerequisites
