@@ -498,7 +498,7 @@
                 const helpToggle = document.getElementById("helpToggle");
                 const audioStatus = document.getElementById("audioStatus");
 
-                // --- Consent Modal Logic ---
+                // Consent Modal Logic
                 function initializeAppWithConsent() {
                     contentWrapper.classList.add("blurred");
                     recordButton.disabled = true;
@@ -515,7 +515,7 @@
                 });
 
                 initializeAppWithConsent();
-                // --- End Consent Modal Logic ---
+                //  End Consent Modal Logic
 
                 // Help section toggle
                 helpTitle.addEventListener("click", () => {
@@ -554,12 +554,11 @@
 
                 // Connect to WebSocket
                 function connectWebSocket() {
-                    // --- WebSocket Connection ---
-                    // IMPORTANT: Replace with the public URL of your deployed API.
+                    //  WebSocket Connection
+
                     // For local testing, use "ws://localhost:8080/ws/talk".
                     // For production, use "wss://your-api-name.onrender.com/ws/talk".
-                    const wsUrl =
-                        "wss://https://ebukagaus-omani-ai.hf.space/ws/talk"; // <-- REPLACE WITH YOUR PRODUCTION URL
+                    const wsUrl = "wss://ebukagaus-omani-ai.hf.space/ws/talk"; //  This is your production URL
 
                     socket = new WebSocket(wsUrl);
 
