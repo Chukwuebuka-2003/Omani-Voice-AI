@@ -13,7 +13,7 @@ The application is comprised of five primary components that work in concert to 
 
 ### 2.1. Frontend Client
 - **Technology:** Vanilla HTML, CSS, and JavaScript.
-- **Role:** Provides the user interface (`new_interface.html`). Its responsibilities include:
+- **Role:** Provides the user interface (`index.html`). Its responsibilities include:
     - Obtaining explicit user consent for the session.
     - Capturing microphone audio using the `MediaRecorder` API.
     - Establishing and maintaining a persistent WebSocket connection to the backend.
