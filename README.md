@@ -60,6 +60,8 @@ The application follows a modern, decoupled architecture designed for scalabilit
 
 ---
 
+The FastAPI Backend Server was deployed on Huggingface Docker space
+
 ## Setup and Installation
 
 ### Prerequisites
